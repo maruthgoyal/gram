@@ -24,13 +24,13 @@ rename s set | Set.notMember s set = s
 
 -- Application of one unit substitution to an Expression
 applyOneSub :: Sub -> Expr -> Expr
-applyOneSub _ (Lit l) = (Lit l)
+applyOneSub _ lit@(Lit l) = lit
 applyOneSub (x, y) (Var name) | x == name = y
                               | otherwise = (Var name)
 
 applyOneSub s (App e1 e2) = (App (applyOneSub s e1) (applyOneSub s e2))
 
-applyOneSub (x, t') (Lam y t) | x == y = (Lam y t)
+applyOneSub (x, t') f@(Lam y t) | x == y = f
                               | otherwise =
                                       let
                                               new_name = rename y (Set.union (fv t) (fv t'))
@@ -46,3 +46,14 @@ applySub (x:xs) e = applySub xs (applyOneSub x e)
 -- Composes 2 substitutions s1 and s2. Applies s2 to the range of s1.
 composeSub :: Substitution -> Substitution -> Substitution
 composeSub s1 s2 = [(s, (applySub s2 e)) | (s, e) <- s1]
+
+-- Applies beta-substitution to the AST
+eval :: Expr -> Expr
+
+eval (App (Lam x t) e2) = eval $ applyOneSub (x, eval e2) t
+eval (App t@(App e1' e2') e2) = eval (App (eval t) e2)
+-- e1 is Var or Lit now
+eval t@(App e1 e2) = t
+-- Just a lambda def, or a var/lit
+eval e = e
+

@@ -11,7 +11,7 @@ import           Syntax
 
 lexer :: Tok.TokenParser ()
 lexer = Tok.makeTokenParser style
-  where ops = ["->","\\","+","*","-","="]
+  where ops = ["->","\\","+","*","-","=", "."]
         names = []
         style = haskellStyle {Tok.reservedOpNames = ops,
                               Tok.reservedNames = names,
@@ -30,7 +30,7 @@ lambda :: Parser Expr
 lambda = do
         reservedOp "\\"
         arguments <- many1 identifier
-        reservedOp "->"
+        reservedOp "."
         body <- expr
         return $ foldr Lam body arguments
 
