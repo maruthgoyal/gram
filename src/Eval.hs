@@ -23,37 +23,42 @@ rename s set | Set.notMember s set = s
              | otherwise = rename (s ++ "'") set
 
 -- Application of one unit substitution to an Expression
-applyOneSub :: Sub -> Expr -> Expr
-applyOneSub _ lit@(Lit l) = lit
-applyOneSub (x, y) (Var name) | x == name = y
-                              | otherwise = (Var name)
+applyOneSub :: Set.Set String -> Sub -> Expr -> Expr
+applyOneSub _ _ lit@(Lit l) = lit
+applyOneSub _ (x, y) (Var name) | x == name = y
+                              | otherwise = Var name
 
-applyOneSub s (App e1 e2) = (App (applyOneSub s e1) (applyOneSub s e2))
+applyOneSub c s (App e1 e2) = App (applyOneSub c s e1) (applyOneSub c s e2)
 
-applyOneSub (x, t') f@(Lam y t) | x == y = f
+applyOneSub c (x, t') f@(Lam y t) | x == y = f
                               | otherwise =
                                       let
-                                              new_name = rename y (Set.union (fv t) (fv t'))
-                                              renamed_body = applyOneSub (y, (Var new_name)) t
-                                              final_body = applyOneSub (x, t') renamed_body
+                                              c' = Set.insert y c
+                                              fv_t = fv t
+                                              fv_t' = fv t'
+                                              fv_t_U_fv_t' = Set.difference (Set.union fv_t fv_t') c'
+                                              new_name = rename y fv_t_U_fv_t'  -- fresh name
+                                              renamed_body = applyOneSub c' (y, Var new_name) t -- [z/x] e
+                                              final_body = applyOneSub c' (x, t') renamed_body -- [t'/x] e
                                       in
-                                              (Lam new_name final_body)
+                                              Lam new_name final_body
 
-applySub :: Substitution -> Expr -> Expr
-applySub [] e     = e
-applySub (x:xs) e = applySub xs (applyOneSub x e)
+applySub :: Set.Set String ->  Substitution -> Expr -> Expr
+applySub _ [] e     = e
+applySub c (x:xs) e = applySub c xs (applyOneSub c x e)
 
 -- Composes 2 substitutions s1 and s2. Applies s2 to the range of s1.
 composeSub :: Substitution -> Substitution -> Substitution
-composeSub s1 s2 = [(s, (applySub s2 e)) | (s, e) <- s1]
+composeSub s1 s2 = [(s, applySub Set.empty s2 e) | (s, e) <- s1]
 
 -- Applies beta-substitution to the AST
 eval :: Expr -> Expr
 
-eval (App (Lam x t) e2) = eval $ applyOneSub (x, eval e2) t
+eval (App (Lam x t) e2)       = eval $ applyOneSub (Set.fromList [x]) (x, eval e2) t
 eval (App t@(App e1' e2') e2) = eval (App (eval t) e2)
 -- e1 is Var or Lit now
-eval t@(App e1 e2) = t
+eval t@(App e1 e2)            = t
 -- Just a lambda def, or a var/lit
+eval (Lam x t)                = Lam x (eval t)
 eval e = e
 
