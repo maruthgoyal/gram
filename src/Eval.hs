@@ -56,8 +56,13 @@ eval :: Expr -> Expr
 
 eval (App (Lam x t) e2)       = eval $ applyOneSub (Set.fromList [x]) (x, eval e2) t
 eval (App t@(App e1' e2') e2) = eval (App (eval t) e2)
+
+eval t@(App (Var _) (Var _)) = t
+eval t@(App (Var _) (Lit _)) = t
+eval t@(App (Lit _) (Lit _)) = t
+eval t@(App (Lit _) (Var _)) = t
 -- e1 is Var or Lit now
-eval t@(App e1 e2)            = t
+eval (App e1 e2)            = App e1 (eval e2)
 -- Just a lambda def, or a var/lit
 eval (Lam x t)                = Lam x (eval t)
 eval e = e
