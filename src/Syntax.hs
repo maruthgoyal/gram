@@ -18,5 +18,5 @@ data Lit
         | LBool Bool
         deriving (Show, Eq, Ord)
 
-data Binop = Add | Sub | Mul deriving (Show, Eq, Ord)
+data Binop = Add | Sub | Mul | Eql deriving (Show, Eq, Ord)
 

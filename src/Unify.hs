@@ -7,26 +7,6 @@ import           Type
 import qualified Data.Map.Strict as Map
 import qualified Data.Set        as Set
 
-type Subst = Map.Map TVar Type
-
-class Substitutable a where
-  ftv :: a -> Set.Set TVar
-  apply :: Subst -> a -> a
-
-instance Substitutable Type where
-  apply s TInt = TInt
-  apply s TBool = TBool
-  apply s (TVar v) = fromMaybe (TVar v) (Map.lookup v s)
-  apply s (TFunc t1 t2) = TFunc t1' t2'
-                          where
-                            t1' = apply s t1
-                            t2' = apply s t2
-
-
-  ftv TInt          = Set.empty
-  ftv TBool         = Set.empty
-  ftv (TVar s)      = Set.singleton s
-  ftv (TFunc t1 t2) = Set.union (ftv t1) (ftv t2)
 
 
 occurs :: TVar -> Type -> Bool
