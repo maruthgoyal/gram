@@ -11,8 +11,8 @@ import           Syntax
 
 lexer :: Tok.TokenParser ()
 lexer = Tok.makeTokenParser style
-  where ops = ["->","\\","+","*","-","=", "."]
-        names = []
+  where ops = ["->","\\","+","*","-","=", ".", ":="]
+        names = ["true", "false", "let", "in", "if", "then", "else"]
         style = haskellStyle {Tok.reservedOpNames = ops,
                               Tok.reservedNames = names,
                               Tok.commentLine = "#"}
@@ -24,6 +24,9 @@ identifier = Tok.identifier lexer
 -- Parses a single reserved operation
 reservedOp :: String -> Parser ()
 reservedOp = Tok.reservedOp lexer
+
+reserved :: String -> Parser ()
+reserved = Tok.reserved lexer
 
 -- Parses a Lambda Abstraction (Function)
 lambda :: Parser Expr
@@ -50,12 +53,43 @@ variable = do
 parens :: Parser a -> Parser a
 parens = Tok.parens lexer
 
+-- Parses true/false terms
+bools :: Parser Expr
+bools = do
+  (reserved "true" >> return (Lit (LBool True)))
+  <|> (reserved "false" >> return (Lit (LBool False)))
+
+-- Parses let/in bindings
+letins :: Parser Expr
+letins = do
+  reserved "let"
+  name <- identifier
+  reservedOp ":="
+  ex <- expr
+  reserved "in"
+  stuff <- expr
+  return (Asg name ex stuff)
+
+-- Pares if,then,else statements
+ifelse :: Parser Expr
+ifelse = do
+  reserved "if"
+  cond <- expr
+  reserved "then"
+  trueRes <- expr
+  reserved "else"
+  falseRes <- expr
+  return (IfEl cond trueRes falseRes)
+
 -- Parses one term
 term :: Parser Expr
 term = parens expr
         <|> number
+        <|> bools
         <|> variable
+        <|> letins
         <|> lambda
+        <|> ifelse
 
 -- Parses one expression
 expr :: Parser Expr

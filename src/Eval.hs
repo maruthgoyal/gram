@@ -1,5 +1,6 @@
 module Eval where
 
+import           Parser
 import           Syntax
 
 import qualified Data.Set as Set
@@ -43,6 +44,18 @@ applyOneSub c (x, t') f@(Lam y t) | x == y = f
                                       in
                                               Lam new_name final_body
 
+applyOneSub c (x,t) (Asg name e1 e2) = (Asg name e1' e2')
+                                where
+                                  c' = Set.insert name c
+                                  e1' = if x == name then e1 else applyOneSub c (x,t) e1
+                                  e2' = applyOneSub c' (x,t) e2
+
+applyOneSub c s (IfEl cond e1 e2) = (IfEl cond' e1' e2')
+                                    where
+                                      cond' = applyOneSub c s cond
+                                      e1' = applyOneSub c s e1
+                                      e2' = applyOneSub c s e2
+
 applySub :: Set.Set String ->  Substitution -> Expr -> Expr
 applySub _ [] e     = e
 applySub c (x:xs) e = applySub c xs (applyOneSub c x e)
@@ -51,8 +64,26 @@ applySub c (x:xs) e = applySub c xs (applyOneSub c x e)
 composeSub :: Substitution -> Substitution -> Substitution
 composeSub s1 s2 = [(s, applySub Set.empty s2 e) | (s, e) <- s1]
 
+pprint' :: Expr -> String
+pprint' (App e1 e2)     = "(" ++ (pprint' e1) ++ ") (" ++ (pprint' e2) ++ ")"
+pprint' (Lam x t)       = "λ" ++ x ++ ". " ++ (pprint' t)
+pprint' (Var x)         = x
+pprint' (Lit (LInt x))  = show x
+pprint' (Lit (LBool b)) = show b
+
+pprint :: Expr -> IO ()
+pprint e = putStrLn (pprint' e)
+
+ppeval :: Expr -> IO ()
+ppeval = pprint . eval
+
 -- Applies beta-substitution to the AST
 eval :: Expr -> Expr
+
+eval (Asg name e1 e2)         = eval (App (Lam name e2) e1)
+eval (IfEl cond e1 e2)        = case (eval cond) of
+                                 (Lit (LBool True))  -> eval e1
+                                 (Lit (LBool False)) -> eval e2
 
 eval (App (Lam x t) e2)       = eval $ applyOneSub (Set.fromList [x]) (x, eval e2) t
 eval (App t@(App e1' e2') e2) = eval (App (eval t) e2)
@@ -64,6 +95,8 @@ eval t@(App (Lit _) (Var _)) = t
 -- e1 is Var or Lit now
 eval (App e1 e2)            = App e1 (eval e2)
 -- Just a lambda def, or a var/lit
-eval (Lam x t)                = Lam x (eval t)
+--eval (Lam x t)              = Lam x (eval t)
 eval e = e
+
+-- TODO: FIX REDUCING THE BODY OF A LAMBDA
 
