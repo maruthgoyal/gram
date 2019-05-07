@@ -11,9 +11,13 @@ type Substitution = [Sub]
 
 -- Helper function to find free vars.
 fv' :: Expr -> Set.Set String -> Set.Set String
+fv' (Lit _) _  = Set.empty
 fv' (Var x) s         = Set.insert x s
 fv' (App e1 e2) s     = Set.union (fv' e1 s) (fv' e2 s)
 fv' (Lam name body) s = Set.delete name (fv' body s)
+fv' (Op _ e1 e2) s    = Set.union (fv' e1 s) (fv' e2 s)
+fv' (Asg n e1 e2) s = Set.delete n (Set.union (fv' e1 s) (fv' e2 s))
+fv' (IfEl cond e1 e2) s = Set.union (Set.union (fv' cond s) (fv' e1 s)) (fv' e2 s)
 
 -- Finds the free variables in a given Expression
 fv :: Expr -> Set.Set String
@@ -57,6 +61,11 @@ applyOneSub c s (IfEl cond e1 e2) = (IfEl cond' e1' e2')
                                       e1' = applyOneSub c s e1
                                       e2' = applyOneSub c s e2
 
+applyOneSub c s (Op b e1 e2) = (Op b e1' e2')
+                                where
+                                  e1' = applyOneSub c s e1
+                                  e2' = applyOneSub c s e2
+
 applySub :: Set.Set String ->  Substitution -> Expr -> Expr
 applySub _ [] e     = e
 applySub c (x:xs) e = applySub c xs (applyOneSub c x e)
@@ -77,6 +86,30 @@ eval (IfEl cond e1 e2)        = case (eval cond) of
                                  (Lit (LBool True))  -> eval e1
                                  (Lit (LBool False)) -> eval e2
 
+eval (Op Add e1 e2) = case eval e1 of
+                           (Lit (LInt x1)) -> case eval e2 of
+                                                (Lit (LInt x2)) -> (Lit (LInt (x1 + x2)))
+                                                _ -> error "Adding non-integer types"
+                           _ -> error "Adding non-integer types"
+eval (Op Sub e1 e2) = case eval e1 of
+                           (Lit (LInt x1)) -> case eval e2 of
+                                                (Lit (LInt x2)) -> (Lit (LInt (x1 - x2)))
+                                                _ -> error "Subtracting non-integer types"
+                           _ -> error "Subtracting non-integer types"
+eval (Op Mul e1 e2) = case eval e1 of
+                           (Lit (LInt x1)) -> case eval e2 of
+                                                (Lit (LInt x2)) -> (Lit (LInt (x1 * x2)))
+                                                _ -> error "Multiplying non-integer types"
+                           _ -> error "Multiplying non-integer types"
+eval (Op Eql e1 e2) = case eval e1 of
+                           (Lit (LInt x1)) -> case eval e2 of
+                                                (Lit (LInt x2)) -> (Lit (LBool (x1 == x2)))
+                                                _ -> error "Equating non-equal types"
+                           (Lit (LBool b1)) -> case eval e2 of
+                                                 (Lit (LBool b2)) -> (Lit (LBool (b1 == b2)))
+                                                 _ -> error "Equating non-equal types"
+                           _ -> error "Equating non-comparable types"
+
 eval (App (Lam x t) e2)       = eval $ applyOneSub (Set.fromList [x]) (x, eval e2) t
 eval (App t@(App e1' e2') e2) = eval (App (eval t) e2)
 
@@ -89,6 +122,10 @@ eval (App e1 e2)            = App e1 (eval e2)
 -- Just a lambda def, or a var/lit
 --eval (Lam x t)              = Lam x (eval t)
 eval e = e
+
+runProgram :: String -> IO ()
+runProgram s = case parseExpr s of
+                 (Right e) -> ppeval e
 
 -- TODO: FIX REDUCING THE BODY OF A LAMBDA
 

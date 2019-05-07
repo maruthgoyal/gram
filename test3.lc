@@ -1,0 +1,6 @@
+let
+  x := \x y. x
+  in
+  let z := \x. 5
+  in
+  (x z) 2

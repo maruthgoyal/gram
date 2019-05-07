@@ -1,5 +1,6 @@
 module Main where
 
+import           Eval
 import           Infer
 import           Pretty
 import           System.Environment
@@ -12,3 +13,4 @@ main = do
     (x:[]) -> do
       program <- readFile x
       tpprint $ infer program
+      runProgram program
