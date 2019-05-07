@@ -29,7 +29,7 @@ freshName :: State Int String
 freshName = do
   n <- get
   put (n + 1)
-  return ("t" ++ (show n))
+  return ("t" ++ show n)
 
 instantiate :: Scheme -> State Int Type
 instantiate (ForAll [] t) = return t
@@ -40,7 +40,7 @@ instantiate (ForAll (x:xs) t) = do
   instantiate s'
 
 generalize :: Type -> TyEnv -> Scheme
-generalize ty tenv = (ForAll vars ty)
+generalize ty tenv = ForAll vars ty
                       where
                         fvars = Set.difference (ftv ty) (ftv tenv)
                         vars = Set.toList $ Set.map getTvName fvars

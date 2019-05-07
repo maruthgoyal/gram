@@ -21,7 +21,7 @@ unifyVar v1 ty | occurs v1 ty = error "FAILED OCCURS CHECK"
 
 
 compose :: Subst -> Subst -> Subst
-compose s s' = Map.map (apply s') s `Map.union` s
+compose s s' = Map.map (apply s) s' `Map.union` s
 
 unify :: Type -> Type -> Subst
 

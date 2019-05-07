@@ -81,12 +81,35 @@ ifelse = do
   falseRes <- expr
   return (IfEl cond trueRes falseRes)
 
+-- Parses binary operators
+binOps :: String -> Parser Expr
+binOps s = do
+  e1 <- expr
+  reservedOp s
+  e2 <- expr
+  case s of
+    "+" -> return $ Op Add e1 e2
+    "-" -> return $ Op Sub e1 e2
+    "=" -> return $ Op Eql e1 e2
+    "*" -> return $ Op Mul e1 e2
+
+add = binOps "+"
+sub = binOps "-"
+mul = binOps "*"
+eql = binOps "="
+
+bop = add
+    <|> sub
+    <|> mul
+    <|> eql
+
 -- Parses one term
 term :: Parser Expr
 term = parens expr
         <|> number
         <|> bools
         <|> variable
+        <|> bop
         <|> letins
         <|> lambda
         <|> ifelse

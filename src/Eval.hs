@@ -1,6 +1,7 @@
 module Eval where
 
 import           Parser
+import           Pretty
 import           Syntax
 
 import qualified Data.Set as Set
@@ -64,15 +65,6 @@ applySub c (x:xs) e = applySub c xs (applyOneSub c x e)
 composeSub :: Substitution -> Substitution -> Substitution
 composeSub s1 s2 = [(s, applySub Set.empty s2 e) | (s, e) <- s1]
 
-pprint' :: Expr -> String
-pprint' (App e1 e2)     = "(" ++ (pprint' e1) ++ ") (" ++ (pprint' e2) ++ ")"
-pprint' (Lam x t)       = "λ" ++ x ++ ". " ++ (pprint' t)
-pprint' (Var x)         = x
-pprint' (Lit (LInt x))  = show x
-pprint' (Lit (LBool b)) = show b
-
-pprint :: Expr -> IO ()
-pprint e = putStrLn (pprint' e)
 
 ppeval :: Expr -> IO ()
 ppeval = pprint . eval
