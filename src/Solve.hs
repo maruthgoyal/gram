@@ -5,6 +5,8 @@ import qualified Data.Map   as Map
 import           Type
 import           Unify
 
+import           TypeSyntax
+
 solver' :: [Constr] -> Subst -> Subst
 solver' [] subs = subs
 
@@ -21,3 +23,11 @@ solver' (x:xs) subs = let
 solver :: [Constr] -> Subst
 solver l = solver' l Map.empty
 
+subExpr :: Subst -> Expr -> Expr
+subExpr s l@(Lit _ _) = l
+subExpr s (Var t name) = Var (apply s t) name
+subExpr s (Lam t x e) = Lam (apply s t) (subExpr s x) (subExpr s e)
+subExpr s (App t e1 e2) = App (apply s t) (subExpr s e1) (subExpr s e2)
+subExpr s (Asg t s e1 e2) = Asg (apply s t) s (subExpr s e1) (subExpr s e2)
+subExpr s (IfEl t cond e1 e2) = IfEl (apply s t) (subExpr s cond) (subExpr s e1) (subExpr s e2)
+subExpr s (Op t bop e1 e2) = Op (apply s t) bop (subExpr s e1) (subExpr s e2)

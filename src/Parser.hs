@@ -81,44 +81,29 @@ ifelse = do
   falseRes <- expr
   return (IfEl cond trueRes falseRes)
 
--- Parses binary operators
-binOps :: String -> Parser Expr
-binOps s = do
-  e1 <- expr
-  reservedOp s
-  e2 <- expr
-  case s of
-    "+" -> return $ Op Add e1 e2
-    "-" -> return $ Op Sub e1 e2
-    "=" -> return $ Op Eql e1 e2
-    "*" -> return $ Op Mul e1 e2
-
-add = binOps "+"
-sub = binOps "-"
-mul = binOps "*"
-eql = binOps "="
-
-bop = add
-    <|> sub
-    <|> mul
-    <|> eql
-
 -- Parses one term
 term :: Parser Expr
 term = parens expr
         <|> number
         <|> bools
         <|> variable
-        <|> bop
         <|> letins
         <|> lambda
         <|> ifelse
 
 -- Parses one expression
-expr :: Parser Expr
-expr = do
+term' :: Parser Expr
+term' = do
         exprs <- many1 term
         return $ foldl1 App exprs
+
+table = [[Ex.Infix (do { reservedOp "+"; return (Op Add) }) Ex.AssocLeft],
+         [Ex.Infix (do { reservedOp "-"; return (Op Sub) }) Ex.AssocLeft],
+         [Ex.Infix (do { reservedOp "*"; return (Op Mul) }) Ex.AssocLeft],
+         [Ex.Infix (do { reservedOp "="; return (Op Eql) }) Ex.AssocLeft] ]
+
+expr :: Parser Expr
+expr = Ex.buildExpressionParser table term'
 
 -- Skips whitespace, applies the parser, finds the end-of-file
 contents :: Parser a -> Parser a
