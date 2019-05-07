@@ -11,7 +11,13 @@ data Type = TVar TVar
           | TInt
           | TBool
           | TFunc Type Type
-          deriving (Show, Eq, Ord)
+          deriving (Eq, Ord)
+
+instance Show Type where
+  show (TVar (TV s)) = s
+  show TInt          = "Int"
+  show TBool         = "Bool"
+  show (TFunc t1 t2) = (show t1) ++ " -> " ++ (show t2)
 
 data Scheme = ForAll [String] Type
 

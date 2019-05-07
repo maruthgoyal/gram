@@ -1,4 +1,4 @@
-module Annotate where
+module Annotate (getType, annotate) where
 
 import           Control.Monad.State
 import qualified Data.Map.Strict     as Map
